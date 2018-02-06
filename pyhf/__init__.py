@@ -8,6 +8,11 @@ try:
 except ImportError:
     pass
 
+try:
+    from .tensor.tensorflow_backend import tensorflow_backend
+except ImportError:
+    pass
+
 
 tensorlib = numpy_backend()
 optimizer = scipy_optimizer()
@@ -255,7 +260,7 @@ class hfpdf(object):
         factors = []
         for m in mods:
             mod, modpars = self.config.mod(m), pars[self.config.par_slice(m)]
-            assert len(modpars) == 1
+            assert modpars.shape[0] == 1
             mod_factor = _hfinterp_code1(mod.at_minus_one[channel][sample],
                                          mod.at_zero,
                                          mod.at_plus_one[channel][sample],
@@ -269,7 +274,7 @@ class hfpdf(object):
         stack = None
         for m in mods:
             mod, modpars = self.config.mod(m), pars[self.config.par_slice(m)]
-            assert len(modpars) == 1
+            assert modpars.shape[0] == 1
 
             # print 'MODPARS', type(modpars.data)
 
@@ -338,7 +343,7 @@ class hfpdf(object):
             mod, modslice = self.config.mod(cname), \
                 self.config.par_slice(cname)
             modalphas = mod.alphas(pars[modslice])
-            end_index = start_index + len(modalphas)
+            end_index = start_index + int(modalphas.shape[0])
             thisauxdata = auxdata[start_index:end_index]
             start_index = end_index
             constraint_term = tensorlib.log(mod.pdf(thisauxdata, modalphas))
@@ -347,7 +352,7 @@ class hfpdf(object):
 
     def logpdf(self, pars, data):
         pars, data = tensorlib.astensor(pars), tensorlib.astensor(data)
-        cut = len(data) - len(self.config.auxdata)
+        cut = data.shape[0] - len(self.config.auxdata)
         actual_data, aux_data = data[:cut], data[cut:]
         lambdas_data = self.expected_actualdata(pars)
         summands = tensorlib.log(_poisson_impl(actual_data, lambdas_data))
